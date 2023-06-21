@@ -1,8 +1,6 @@
 package client;
 
 
-import java.net.InetAddress;
-
 import java.io.*;
 import java.net.*;
 import java.util.*;
@@ -15,7 +13,28 @@ public class Client_Main {
 
 }
 
-
+class Listener implements Runnable{
+	
+	DatagramSocket s;
+	
+	Listener(DatagramSocket s){
+		this.s = s;
+		this.run();
+	}
+	
+	  public void run(){
+		byte[] buf = new byte[256];
+		DatagramPacket rec = new DatagramPacket(buf, buf.length);
+	    try {
+			s.receive(rec);
+			String text = new String(rec.getData(), 0, rec.getLength());
+			System.out.println(text);
+		} catch (IOException e) {
+			
+			e.printStackTrace();
+		}
+	  }
+	}
 
 class TestClass {
 	public static void dotest(){
@@ -29,7 +48,7 @@ class TestClass {
 		    System.out.println("Please start typing your message and hit enter when you are done.");
 		    System.out.println("To exit the program, please type Quit.");
 		    String message = "";
-		    message = inFromUser.nextLine();
+		    message = username  + inFromUser.nextLine();
 		    
 		    while(!message.equals("Quit")) {
 	            
@@ -44,7 +63,9 @@ class TestClass {
 	            s.send(packet);
 	            System.out.println("Message sent, input next message or 'Quit'");
 	            message = inFromUser.nextLine();
-	
+	            
+	            
+	            
 	            
 	            }
 	            // close the datagram socket in the end. 

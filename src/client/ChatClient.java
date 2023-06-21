@@ -9,8 +9,8 @@ import java.awt.event.*;
 import java.io.*;
 
 public class ChatClient {
-	private static final int PORT = 55555;
-	private static final String ADDRESS = "localhost";
+	private static final int PORT = 194;
+	private static final String ADDRESS = "127.0.0.1";
 	private DatagramSocket socket;
 	private InetAddress serverAddress;
 	private int serverPort;
