@@ -6,4 +6,5 @@
  *
  */
 module IRC {
+	requires java.desktop;
 }
