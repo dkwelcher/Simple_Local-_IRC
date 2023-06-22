@@ -63,7 +63,7 @@ class DataManager{
 		
 	}
 	
-	public void addUser(DatagramPacket request) {
+	public void attemptaddUser(DatagramPacket request) {
 		//String username = new String(request.getData());
 		//String ip = new String(request.getAddress().toString());
 		
@@ -97,6 +97,8 @@ class ClientHandler implements Runnable {
 		this.socket = sock;
 		
 		this.manager = data;
+		this.manager.attemptaddUser(pkt);
+		
 		new Thread(this).start();
 		System.out.println("created thread");
 		
@@ -126,6 +128,7 @@ class ClientHandler implements Runnable {
 	}//message, address, port
 	public void broadcast(DatagramPacket packet, DataManager data) throws UnknownHostException {
 		int i = 0;
+		System.out.println("broadcast reached");
 		for(InetAddress entry : this.manager.getips()){
 			
 			System.out.println("before");

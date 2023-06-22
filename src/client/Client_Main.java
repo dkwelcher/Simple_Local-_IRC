@@ -23,15 +23,21 @@ class Listener implements Runnable{
 	}
 	
 	  public void run(){
+		  System.out.println("listener thread started");
 		byte[] buf = new byte[256];
 		DatagramPacket rec = new DatagramPacket(buf, buf.length);
-	    try {
-			s.receive(rec);
-			String text = new String(rec.getData(), 0, rec.getLength());
-			System.out.println("from server: " + text);
-		} catch (IOException e) {
-			
-			e.printStackTrace();
+		while(true) {
+		    try {
+		    	System.out.println("try reached");
+				s.receive(rec);
+				
+				System.out.println("recieve occured");
+				String text = new String(rec.getData(), 0, rec.getLength());
+				System.out.println("from server: " + text);
+			} catch (IOException e) {
+				
+				e.printStackTrace();
+			}
 		}
 	  }
 	}
