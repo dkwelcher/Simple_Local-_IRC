@@ -19,7 +19,7 @@ class Listener implements Runnable{
 	
 	Listener(DatagramSocket s){
 		this.s = s;
-		this.run();
+		new Thread(this).start();
 	}
 	
 	  public void run(){
@@ -28,7 +28,7 @@ class Listener implements Runnable{
 	    try {
 			s.receive(rec);
 			String text = new String(rec.getData(), 0, rec.getLength());
-			System.out.println(text);
+			System.out.println("from server: " + text);
 		} catch (IOException e) {
 			
 			e.printStackTrace();
@@ -49,7 +49,7 @@ class TestClass {
 		    System.out.println("To exit the program, please type Quit.");
 		    String message = "";
 		    message = username  + inFromUser.nextLine();
-		    
+		    new Listener(s);
 		    while(!message.equals("Quit")) {
 	            
 	            // construct datagram packet
