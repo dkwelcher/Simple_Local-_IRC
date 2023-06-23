@@ -1,6 +1,10 @@
 package client;
 
 import java.net.*;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+
 import javax.swing.*;
 import javax.swing.text.DefaultCaret;
 
@@ -13,6 +17,7 @@ public class ChatClient {
 	private static final String ADDRESS = "127.0.0.1";
 	private DatagramSocket socket;
 	private InetAddress serverAddress;
+	private String username;
 	private int serverPort;
 	private Thread listenerThread;
 	private JFrame chatFrame;
@@ -22,12 +27,15 @@ public class ChatClient {
 	private JButton pmButton;
 	private JButton closeButton;
 	
-	public ChatClient(InetAddress serverAddress, int serverPort) {
+	public ChatClient(InetAddress serverAddress, int serverPort, String username) {
 		this.serverAddress = serverAddress;
 		this.serverPort = serverPort;
+		this.username = username;
 		
 		initializeGUI();
 		initializeChatClient();
+		
+		messageField.requestFocusInWindow();
 	}
 	
 	public static void main(String[] args) {
@@ -35,8 +43,9 @@ public class ChatClient {
 			public void run() {
 				InetAddress address;
 				try {
+					String username = getUsername();
 					address = InetAddress.getByName(ADDRESS);
-					new ChatClient(address, PORT);
+					new ChatClient(address, PORT, username);
 				}
 				catch (UnknownHostException e) {
 					e.printStackTrace();
@@ -46,13 +55,25 @@ public class ChatClient {
 		});
 	}
 	
+	private static String getUsername() {
+		String username = null;
+		while(username == null || username.trim().isEmpty()) {
+			username = JOptionPane.showInputDialog(null, "Enter your username:");
+			if(username == null)
+				System.exit(0);
+			else if(username.trim().isEmpty())
+				JOptionPane.showMessageDialog(null, "Please enter a username that isn't blank.", "Username Error", JOptionPane.ERROR_MESSAGE);
+		}
+		return username.trim();
+	}
+	
 	private void initializeGUI() {
 		Dimension frameSize = getFrameDimension();
 		
 		chatFrame = new JFrame("Local Chatroom");
 		chatFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		chatFrame.setSize(frameSize);
-		//chatFrame.setMinimumSize(new Dimension(?, ?)); // for smaller screens, this may be necessary
+		chatFrame.setMinimumSize(new Dimension(1000, 1000));
 		chatFrame.setResizable(false);
 		chatFrame.setLayout(new BorderLayout());
 		
@@ -99,6 +120,8 @@ public class ChatClient {
 	private JPanel createCenterPanel() {
 		JPanel centerPanel = new JPanel(new BorderLayout());
 		chatTextArea = new JTextArea();
+		chatTextArea.setLineWrap(true);
+		chatTextArea.setWrapStyleWord(true);
 		chatTextArea.setEditable(false);
 		chatTextArea.setFont(new Font("Verdana", Font.PLAIN, 12));
 		chatTextArea.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
@@ -129,6 +152,7 @@ public class ChatClient {
 		
 		sendButton = new JButton("Send");
 		sendButton.addActionListener(buttonListener);
+		chatFrame.getRootPane().setDefaultButton(sendButton);
 		pmButton = new JButton("PM");
 		pmButton.addActionListener(buttonListener);
 		closeButton = new JButton("Close");
@@ -203,7 +227,11 @@ public class ChatClient {
 			
 			if(!message.isEmpty()) {
 				messageField.setText("");
-				byte[] buffer = message.getBytes();
+				
+				String timeStamp = getTimeStamp();
+				String formattedMessage = username + " (" + timeStamp + "): " + message;
+				
+				byte[] buffer = formattedMessage.getBytes();
 				DatagramPacket packet = new DatagramPacket(buffer, buffer.length, serverAddress, serverPort);
 				
 				try {
@@ -214,6 +242,12 @@ public class ChatClient {
 					e.printStackTrace();
 				}
 			}
+		}
+		
+		private String getTimeStamp() {
+			LocalTime time = LocalTime.now(ZoneId.systemDefault());
+			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("hh:mm:ss a");
+			return time.format(formatter);
 		}
 		
 		private void executePmButton() {
