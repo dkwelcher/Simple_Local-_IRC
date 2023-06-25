@@ -69,7 +69,11 @@ class DataManager{
 			ips.add(request.getAddress());
 			ports.add(request.getPort());
 			users.add((new String(request.getData(), 0, request.getLength()).split(" ")[0]));
-			addToTextLog(request.getAddress().toString() + "  joined the room\n");
+			
+			addToTextLog(request.getAddress().toString() + " joined the room\n");
+
+			System.out.println(new String(request.getData(), 0, request.getLength()).split(" ")[0]);
+
 			
 			return true;
 		}else {
@@ -124,7 +128,9 @@ class ClientHandler implements Runnable {
 			
 			if(this.manager.attemptaddUser(this.packet)) {
 				this.sendHistory(this.packet);
+
 				this.sendWelcomeMessage(this.packet);
+
 			}
 			
 			String text = new String(this.packet.getData(), 0, this.packet.getLength());
@@ -143,20 +149,30 @@ class ClientHandler implements Runnable {
 			}else if(text.contains("GIVE_HISTORY")){
 				
 				this.sendHistory(this.packet);
+
 				
 			}else if(text.contains("GIVE_IP: ")){
 				String[] uwords = text.split(" ");
 				String uname = uwords[uwords.length -1 ];
 				this.sendUserIP(this.packet, uname);
 			
-			}else if(text.contains("SEND_PM")){
+			}else if(text.contains("SENDPM: ")){
 				String[] uwords = text.split(" ");
 				//format 
-				String uname = uwords[uwords.length -1 ];
-				this.sendUserIP(this.packet, uname);
+				String fromuser = uwords[0];
+				String touser = uwords[4];
+				
+				System.out.println("TO USER: "+ touser);
+				
+				System.out.println("debug");
+				String message = "PM from " + fromuser + ": " + text.substring(uwords[0].length() + uwords[1].length() + uwords[2].length() + uwords[3].length() + uwords[4].length());
+				System.out.println(message);
+				//bob (06:54:43 PM): send_pm otherUser this is the pm
+				
+				this.sendPM(this.packet, fromuser, touser, message);
 			
+
 			}else{
-				System.out.println("chat history sent");
 				this.broadcast(this.packet, this.manager);
 			}
 				
@@ -204,6 +220,7 @@ class ClientHandler implements Runnable {
 		
 	}
 	
+
 	public void sendWelcomeMessage(DatagramPacket packet) {
 		
 		
@@ -264,13 +281,19 @@ class ClientHandler implements Runnable {
 		try {
 			
 			byte[] data = message.getBytes();
+			
+			InetAddress address = this.manager.getips().get(this.manager.getUsers().indexOf(toUsername));
+			
+			int port = this.manager.getports().get(this.manager.getUsers().indexOf(toUsername));
+			
 			DatagramPacket toclient = new DatagramPacket(data, data.length, 
-			packet.getAddress(), packet.getPort());
+					address, port);
 			this.socket.send(toclient);
-			System.out.println("Sending from user " + fromUsername + " to " + toUsername);
+			System.out.println("Sending PM from user " + fromUsername + " to " + toUsername);
 		}catch(Exception e){
 			System.out.println(e.getMessage());
-			System.out.println("failed to send ip to " + fromUsername + " to " + packet.getAddress());
+			System.out.println("failed to send PM to " + fromUsername + " to " + packet.getAddress());
+
 		}
 	}
 }
