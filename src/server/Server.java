@@ -94,7 +94,12 @@ class DataManager{
 		return ports;
 	}
 	
-	
+	public void removeUser(String username) {
+		int index = this.users.indexOf(username);
+		users.remove(index);
+		ips.remove(index);
+		ports.remove(index);
+	}
 }
 
 class ClientHandler implements Runnable {
@@ -173,6 +178,12 @@ class ClientHandler implements Runnable {
 				this.sendPM(this.packet, fromuser, touser, formattedMessage);
 			
 
+			}else if(text.contains("CLIENTEXIT")){
+				this.handleExit(this.packet);
+				String exitMessage = this.manager.getUsers().get(this.manager.getips().indexOf(this.packet.getAddress())) + " Left the room";
+				byte[] bytes = exitMessage.getBytes();
+				this.packet.setData(bytes);
+				this.broadcast(this.packet, this.manager);
 			}else{
 				this.broadcast(this.packet, this.manager);
 			}
@@ -289,12 +300,26 @@ class ClientHandler implements Runnable {
 			
 			DatagramPacket toclient = new DatagramPacket(data, data.length, 
 					address, port);
+			
+			DatagramPacket tosender = new DatagramPacket(data, data.length, 
+					packet.getAddress(), packet.getPort());
+			
 			this.socket.send(toclient);
+			this.socket.send(tosender);
 			System.out.println("Sending PM from user " + fromUsername + " to " + toUsername);
 		}catch(Exception e){
 			System.out.println(e.getMessage());
 			System.out.println("failed to send PM to " + fromUsername + " to " + packet.getAddress());
 
+		}
+	}
+	
+	public void handleExit(DatagramPacket packet) {
+		try {
+			String username = this.manager.getUsers().get(this.manager.getips().indexOf(packet.getAddress()));
+			this.manager.removeUser(username);
+		}catch(Exception e) {
+			System.out.println(e.getMessage());
 		}
 	}
 }
