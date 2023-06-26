@@ -172,6 +172,7 @@ class ClientHandler implements Runnable {
 				System.out.println("debug");
 				String message = text.substring(text.indexOf(touser) + touser.length());
 				String formattedMessage = "PM from " + fromuser + ": " + message;
+				
 				System.out.println(message);
 				//bob (06:54:43 PM): send_pm otherUser this is the pm
 				
@@ -306,7 +307,7 @@ class ClientHandler implements Runnable {
 			
 			this.socket.send(toclient);
 			this.socket.send(tosender);
-			System.out.println("Sending PM from user " + fromUsername + " to " + toUsername);
+			System.out.println("Sending PM to/from user " + fromUsername + " to " + toUsername);
 		}catch(Exception e){
 			System.out.println(e.getMessage());
 			System.out.println("failed to send PM to " + fromUsername + " to " + packet.getAddress());
