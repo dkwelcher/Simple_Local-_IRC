@@ -192,8 +192,11 @@ public class ChatClient {
 		
 		// handles edge cases where an unexpected shutdown occurs
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-			listenerThread.interrupt();
-			socket.close();
+			if(!socket.isClosed()) {
+				sendExitMessageToServer("CLIENTEXIT");
+				listenerThread.interrupt();
+				socket.close();
+			}
 		}));
 	}
 	
@@ -212,7 +215,7 @@ public class ChatClient {
 	}
 	
 	private void initializeServerCommunication() {
-		String message = "CONNECTED";
+		String message = "[CONNECTED]";
 		
 		String timeStamp = getTimeStamp();
 		String formattedMessage = username + " (" + timeStamp + "): " + message;
@@ -299,6 +302,18 @@ public class ChatClient {
 		return time.format(formatter);
 	}
 	
+	private void sendExitMessageToServer(String command) {
+		byte[] buffer = command.getBytes();
+		DatagramPacket packet = new DatagramPacket(buffer, buffer.length, serverAddress, serverPort);
+		try {
+			socket.send(packet);
+		}
+		catch(IOException e) {
+			System.out.println("Error occurred while attempting to send exit command.");
+			e.printStackTrace();
+		}
+	}
+	
 	private class ButtonListener implements ActionListener {
 		@Override
 		public void actionPerformed(ActionEvent e) {
@@ -339,14 +354,15 @@ public class ChatClient {
 		private void executePmButton() {
 			String recipientUsername = getRecipientUsername();
 			
-			if(recipientUsername == null || recipientUsername.trim().isEmpty()) {
-				JOptionPane.showMessageDialog(null, "Please enter a valid username", "Username Error", JOptionPane.ERROR_MESSAGE);
+			if(recipientUsername == null)
 				return;
-			}
 			
 			String message = JOptionPane.showInputDialog(null, "Message to " + recipientUsername + ":");
 			
-			if(message == null || message.trim().isEmpty()) {
+			if(message == null)
+				return;
+			
+			if(message.trim().isEmpty()) {
 				JOptionPane.showMessageDialog(null, "Please enter a message that isn't blank", "Private Message Error", JOptionPane.ERROR_MESSAGE);
 				return;
 			}
@@ -397,6 +413,8 @@ public class ChatClient {
 		}
 		
 		private void executeCloseButton() {
+			sendExitMessageToServer("CLIENTEXIT");
+			
 			listenerThread.interrupt();
 			socket.close();
 			if(clientListFrame != null)
