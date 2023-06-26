@@ -1,6 +1,10 @@
 package client;
 
 import java.net.*;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+
 import javax.swing.*;
 import javax.swing.text.DefaultCaret;
 
@@ -13,6 +17,7 @@ public class ChatClient {
 	private static final String ADDRESS = "127.0.0.1";
 	private DatagramSocket socket;
 	private InetAddress serverAddress;
+	private String username;
 	private int serverPort;
 	private Thread listenerThread;
 	private JFrame chatFrame;
@@ -20,14 +25,24 @@ public class ChatClient {
 	private JTextField messageField;
 	private JButton sendButton;
 	private JButton pmButton;
+	private JButton listButton;
 	private JButton closeButton;
+	private JFrame clientListFrame;
+	private JTextArea clientListTextArea;
+	private Timer timer;
+	private boolean receivedClientList = false;
 	
-	public ChatClient(InetAddress serverAddress, int serverPort) {
+	public ChatClient(InetAddress serverAddress, int serverPort, String username) {
 		this.serverAddress = serverAddress;
 		this.serverPort = serverPort;
+		this.username = username;
 		
 		initializeGUI();
 		initializeChatClient();
+		initializeClientListTimer();
+		initializeServerCommunication();
+		
+		messageField.requestFocusInWindow();
 	}
 	
 	public static void main(String[] args) {
@@ -35,8 +50,9 @@ public class ChatClient {
 			public void run() {
 				InetAddress address;
 				try {
+					String username = getUsername();
 					address = InetAddress.getByName(ADDRESS);
-					new ChatClient(address, PORT);
+					new ChatClient(address, PORT, username);
 				}
 				catch (UnknownHostException e) {
 					e.printStackTrace();
@@ -46,17 +62,29 @@ public class ChatClient {
 		});
 	}
 	
+	private static String getUsername() {
+		String username = null;
+		while(username == null || username.trim().isEmpty()) {
+			username = JOptionPane.showInputDialog(null, "Enter your username:");
+			if(username == null)
+				System.exit(0);
+			else if(username.trim().isEmpty())
+				JOptionPane.showMessageDialog(null, "Please enter a username that isn't blank.", "Username Error", JOptionPane.ERROR_MESSAGE);
+		}
+		return username.trim();
+	}
+	
 	private void initializeGUI() {
 		Dimension frameSize = getFrameDimension();
 		
 		chatFrame = new JFrame("Local Chatroom");
 		chatFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		chatFrame.setSize(frameSize);
-		//chatFrame.setMinimumSize(new Dimension(?, ?)); // for smaller screens, this may be necessary
+		chatFrame.setMinimumSize(new Dimension(1000, 1000));
 		chatFrame.setResizable(false);
 		chatFrame.setLayout(new BorderLayout());
 		
-		JPanel northPanel = createNorthPanel();
+		JPanel northPanel = createNorthPanel("Local Chatroom", BannerConstants.MAIN_CHATROOM_DIMENSION);
 		JPanel centerPanel = createCenterPanel();
 		centerPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 		JPanel southPanel = createSouthPanel();
@@ -76,12 +104,12 @@ public class ChatClient {
 		return new Dimension(frameWidth, frameHeight);
 	}
 	
-	private JPanel createNorthPanel() {
+	private JPanel createNorthPanel(String title, Dimension dimension) {
 		JPanel northPanel = new JPanel(new BorderLayout());
 		northPanel.setBackground(BannerConstants.BANNER_COLOR);
-		northPanel.setPreferredSize(new Dimension(25, 75));
+		northPanel.setPreferredSize(dimension);
 		
-		JLabel titleLabel = new JLabel("Local Chatroom");
+		JLabel titleLabel = new JLabel(title);
 		titleLabel.setFont(BannerConstants.TITLE_FONT);
 		titleLabel.setForeground(Color.WHITE);
 		titleLabel.setHorizontalAlignment(JLabel.CENTER);
@@ -99,6 +127,8 @@ public class ChatClient {
 	private JPanel createCenterPanel() {
 		JPanel centerPanel = new JPanel(new BorderLayout());
 		chatTextArea = new JTextArea();
+		chatTextArea.setLineWrap(true);
+		chatTextArea.setWrapStyleWord(true);
 		chatTextArea.setEditable(false);
 		chatTextArea.setFont(new Font("Verdana", Font.PLAIN, 12));
 		chatTextArea.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
@@ -129,13 +159,17 @@ public class ChatClient {
 		
 		sendButton = new JButton("Send");
 		sendButton.addActionListener(buttonListener);
+		chatFrame.getRootPane().setDefaultButton(sendButton);
 		pmButton = new JButton("PM");
 		pmButton.addActionListener(buttonListener);
+		listButton = new JButton("List");
+		listButton.addActionListener(buttonListener);
 		closeButton = new JButton("Close");
 		closeButton.addActionListener(buttonListener);
 		
 		buttonPanel.add(sendButton);
 		buttonPanel.add(pmButton);
+		buttonPanel.add(listButton);
 		buttonPanel.add(closeButton);
 		
 		southPanel.add(messagePanel, BorderLayout.WEST);
@@ -163,6 +197,39 @@ public class ChatClient {
 		}));
 	}
 	
+	// delays displaying client list to allow server to send all userInfo packets
+	private void initializeClientListTimer() {
+		timer = new Timer(500, new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if(receivedClientList) {
+					clientListFrame.setVisible(true);
+					receivedClientList = false;
+				}
+			}
+		});
+		timer.setRepeats(false);
+	}
+	
+	private void initializeServerCommunication() {
+		String message = "CONNECTED";
+		
+		String timeStamp = getTimeStamp();
+		String formattedMessage = username + " (" + timeStamp + "): " + message;
+			
+		byte[] buffer = formattedMessage.getBytes();
+		DatagramPacket packet = new DatagramPacket(buffer, buffer.length, serverAddress, serverPort);
+			
+		try {
+			socket.send(packet);
+			}
+		catch(IOException e) {
+			System.out.println("Error occurred while attempting to send packet.");
+			e.printStackTrace();
+		}
+		
+	}
+	
 	private class ListenerRunnable implements Runnable {
 		@Override
 		public void run() {
@@ -176,13 +243,60 @@ public class ChatClient {
 					
 					String message = new String(packet.getData(), 0, packet.getLength(), "UTF-8");
 					
-					chatTextArea.append(message + "\n");
+					if(message.startsWith("DATA: ")) {
+						displayClientList(message);
+						timer.restart();
+					}
+					else
+						chatTextArea.append(message + "\n");
 				}
 				catch(IOException e) {
 						break;
 				}
 			}
 		}
+	}
+	
+	private void displayClientList(String clientList) {
+		if (clientListFrame == null) {
+			clientListFrame = new JFrame("Client List");
+			clientListFrame.setSize(new Dimension(400, 300));
+			clientListFrame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+			clientListFrame.setLayout(new BorderLayout());
+
+			JPanel northPanel = createNorthPanel("Client List", BannerConstants.CLIENT_LIST_DIMENSION);
+			JPanel centerPanel = new JPanel(new BorderLayout());
+
+			clientListTextArea = new JTextArea();
+			clientListTextArea.setLineWrap(true);
+			clientListTextArea.setWrapStyleWord(true);
+			clientListTextArea.setEditable(false);
+			clientListTextArea.setFont(new Font("Verdana", Font.PLAIN, 12));
+			clientListTextArea.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+
+			JScrollPane scrollPane = new JScrollPane(clientListTextArea, ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+
+			centerPanel.add(scrollPane, BorderLayout.CENTER);
+
+			clientListFrame.add(northPanel, BorderLayout.NORTH);
+			clientListFrame.add(centerPanel, BorderLayout.CENTER);
+
+			clientListFrame.setLocationRelativeTo(null);
+			clientListFrame.setVisible(true);
+		} 
+		
+		if(receivedClientList) {
+			clientListTextArea.setText("");
+			receivedClientList = false;
+		}
+		
+		clientListTextArea.append(clientList.substring(6) + "\n");
+	}
+	
+	private String getTimeStamp() {
+		LocalTime time = LocalTime.now(ZoneId.systemDefault());
+		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("hh:mm:ss a");
+		return time.format(formatter);
 	}
 	
 	private class ButtonListener implements ActionListener {
@@ -194,6 +308,8 @@ public class ChatClient {
 				executeSendButton();
 			else if(button == pmButton)
 				executePmButton();
+			else if(button == listButton)
+				executeListButton();
 			else if(button == closeButton)
 				executeCloseButton();
 		}
@@ -203,7 +319,11 @@ public class ChatClient {
 			
 			if(!message.isEmpty()) {
 				messageField.setText("");
-				byte[] buffer = message.getBytes();
+				
+				String timeStamp = getTimeStamp();
+				String formattedMessage = username + " (" + timeStamp + "): " + message;
+				
+				byte[] buffer = formattedMessage.getBytes();
 				DatagramPacket packet = new DatagramPacket(buffer, buffer.length, serverAddress, serverPort);
 				
 				try {
@@ -217,12 +337,31 @@ public class ChatClient {
 		}
 		
 		private void executePmButton() {
+
+		}
+		
+		private void executeListButton() {
+			String fetchCommand = "USER_REQUEST";
+			byte[] buffer = fetchCommand.getBytes();
+			DatagramPacket packet = new DatagramPacket(buffer, buffer.length, serverAddress, serverPort);
 			
+			try {
+				socket.send(packet);
+				receivedClientList = true;
+				if(clientListFrame != null)
+					clientListFrame.setVisible(true);
+			}
+			catch(IOException e) {
+				System.out.println("Error occurred while attempting to send user request command.");
+				e.printStackTrace();
+			}
 		}
 		
 		private void executeCloseButton() {
 			listenerThread.interrupt();
 			socket.close();
+			if(clientListFrame != null)
+				clientListFrame.dispose();
 			chatFrame.dispose();
 		}
 	}
