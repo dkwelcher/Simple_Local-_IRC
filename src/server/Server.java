@@ -159,17 +159,18 @@ class ClientHandler implements Runnable {
 			}else if(text.contains("SENDPM: ")){
 				String[] uwords = text.split(" ");
 				//format 
-				String fromuser = uwords[0];
-				String touser = uwords[4];
+				String fromuser = uwords[1];
+				String touser = uwords[3];
 				
 				System.out.println("TO USER: "+ touser);
 				
 				System.out.println("debug");
-				String message = "PM from " + fromuser + ": " + text.substring(uwords[0].length() + uwords[1].length() + uwords[2].length() + uwords[3].length() + uwords[4].length());
+				String message = text.substring(text.indexOf(touser) + touser.length());
+				String formattedMessage = "PM from " + fromuser + ": " + message;
 				System.out.println(message);
 				//bob (06:54:43 PM): send_pm otherUser this is the pm
 				
-				this.sendPM(this.packet, fromuser, touser, message);
+				this.sendPM(this.packet, fromuser, touser, formattedMessage);
 			
 
 			}else{

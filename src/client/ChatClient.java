@@ -337,7 +337,46 @@ public class ChatClient {
 		}
 		
 		private void executePmButton() {
-
+			String recipientUsername = getRecipientUsername();
+			
+			if(recipientUsername == null || recipientUsername.trim().isEmpty()) {
+				JOptionPane.showMessageDialog(null, "Please enter a valid username", "Username Error", JOptionPane.ERROR_MESSAGE);
+				return;
+			}
+			
+			String message = JOptionPane.showInputDialog(null, "Message to " + recipientUsername + ":");
+			
+			if(message == null || message.trim().isEmpty()) {
+				JOptionPane.showMessageDialog(null, "Please enter a message that isn't blank", "Private Message Error", JOptionPane.ERROR_MESSAGE);
+				return;
+			}
+			
+			String formattedMessage = "SENDPM: " + username + " to " + recipientUsername + " " + message;
+			
+			byte[] buffer = formattedMessage.getBytes();
+			DatagramPacket packet = new DatagramPacket(buffer, buffer.length, serverAddress, serverPort);
+			
+			try {
+				socket.send(packet);
+			}
+			catch(IOException e) {
+				System.out.println("Error occurred while attempting to send private message packet");
+				e.printStackTrace();
+			}
+		}
+		
+		private String getRecipientUsername() {
+			String recipientUsername = null;
+			
+			while(recipientUsername == null || recipientUsername.trim().isEmpty()) {
+				recipientUsername = JOptionPane.showInputDialog(null, "Enter the recipient's username:");
+				if(recipientUsername == null)
+					return null;
+				else if(recipientUsername.trim().isEmpty())
+					JOptionPane.showMessageDialog(null, "Please enter a username that isn't blank", "Username Error", JOptionPane.ERROR_MESSAGE);
+				
+			}
+			return recipientUsername.trim();
 		}
 		
 		private void executeListButton() {
