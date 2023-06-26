@@ -172,19 +172,20 @@ class ClientHandler implements Runnable {
 				System.out.println("debug");
 				String message = text.substring(text.indexOf(touser) + touser.length());
 				String formattedMessage = "PM from " + fromuser + ": " + message;
-				
+				String senderMessage = "PM to " + touser + ": " + message;
 				System.out.println(message);
 				//bob (06:54:43 PM): send_pm otherUser this is the pm
 				
-				this.sendPM(this.packet, fromuser, touser, formattedMessage);
+				this.sendPM(this.packet, fromuser, touser, formattedMessage, senderMessage);
 			
 
 			}else if(text.contains("CLIENTEXIT")){
-				this.handleExit(this.packet);
+				
 				String exitMessage = this.manager.getUsers().get(this.manager.getips().indexOf(this.packet.getAddress())) + " Left the room";
 				byte[] bytes = exitMessage.getBytes();
 				this.packet.setData(bytes);
 				this.broadcast(this.packet, this.manager);
+				this.handleExit(this.packet);
 			}else{
 				this.broadcast(this.packet, this.manager);
 			}
@@ -290,19 +291,19 @@ class ClientHandler implements Runnable {
 		}
 	}
 	
-	public void sendPM(DatagramPacket packet, String fromUsername, String toUsername, String message) {
+	public void sendPM(DatagramPacket packet, String fromUsername, String toUsername, String message, String textForSender) {
 		try {
 			
 			byte[] data = message.getBytes();
-			
-			InetAddress address = this.manager.getips().get(this.manager.getUsers().indexOf(toUsername));
+			byte[] dataforsender = textForSender.getBytes()
+;			InetAddress address = this.manager.getips().get(this.manager.getUsers().indexOf(toUsername));
 			
 			int port = this.manager.getports().get(this.manager.getUsers().indexOf(toUsername));
 			
 			DatagramPacket toclient = new DatagramPacket(data, data.length, 
 					address, port);
 			
-			DatagramPacket tosender = new DatagramPacket(data, data.length, 
+			DatagramPacket tosender = new DatagramPacket(dataforsender, dataforsender.length, 
 					packet.getAddress(), packet.getPort());
 			
 			this.socket.send(toclient);
