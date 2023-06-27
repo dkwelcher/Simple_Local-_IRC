@@ -14,7 +14,6 @@ import java.io.*;
 
 public class ChatClient {
 	private static final int PORT = 194;
-	private static final String ADDRESS = "127.0.0.1";
 	private DatagramSocket socket;
 	private InetAddress serverAddress;
 	private String username;
@@ -48,13 +47,14 @@ public class ChatClient {
 	public static void main(String[] args) {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
-				InetAddress address;
 				try {
 					String username = getUsername();
-					address = InetAddress.getByName(ADDRESS);
+					String serverAddress = getServerAddress();
+					InetAddress address = InetAddress.getByName(serverAddress);
 					new ChatClient(address, PORT, username);
 				}
 				catch (UnknownHostException e) {
+					JOptionPane.showMessageDialog(null, "Server IP Address is invalid.", "Invalid Server IP Address", JOptionPane.ERROR_MESSAGE);
 					e.printStackTrace();
 					System.exit(1);
 				}
@@ -72,6 +72,20 @@ public class ChatClient {
 				JOptionPane.showMessageDialog(null, "Please enter a username that isn't blank.", "Username Error", JOptionPane.ERROR_MESSAGE);
 		}
 		return username.trim();
+	}
+	
+	private static String getServerAddress() {
+		String serverAddress = null;
+		while(serverAddress == null || serverAddress.trim().isEmpty()) {
+			serverAddress = JOptionPane.showInputDialog(null, "Enter the server's IP address:\n"
+					+ "*(If an incorrect server IP address is entered, then the client will still run;\n"
+					+ "however, it will not be functional.)");
+			if(serverAddress == null)
+				System.exit(0);
+			else if(serverAddress.trim().isEmpty())
+				JOptionPane.showMessageDialog(null, "Please enter an IP address that isn't blank.", "Server IP Address Error", JOptionPane.ERROR_MESSAGE);
+		}
+		return serverAddress;
 	}
 	
 	private void initializeGUI() {
