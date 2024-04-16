@@ -1,8 +1,17 @@
-# Simple_Local-_IRC
-Simple IRC client and server
-This project is a simple chat program that works by sending UDP messages over an LAN network. 
-The project features a simple GUI that includes a chat box showing previous messages, 
-a text box for inputting messages, a button that allows for private messaging between two clients, and a button for displaying the client list. 
-Upon joining the chat room, the client will be greeted with a welcome message, and the previous chat history will be displayed. 
-By starting a new thread whenever there is a new client connection, the UDP server is able to handle multiple clients at once. 
-The server maintains a list of active clients, along with their username and IP address.
+# Local UDP Chatroom
+
+This project is now featured in the University of South Carolina Aiken's CSCI A415 (Data Communications and Computer Networks) course as part of its curriculum.
+
+The project is a chat application that operates by transmitting UDP packets across a local area network (LAN). When a user joins the chat room, the client will display a welcome message and the chat history. The server handles multiple clients simultaneously by initiating a new thread for each client connection.
+
+## Features
+
+- Graphical User Interface (GUI)
+- Chat History
+- Chat Message Text Box
+- Private Messaging
+- Connected Client List (IP address & username)
+
+## Update Summary (04/16/2024)
+
+This fork has removed unnecessary files. The code remains unchanged. The README.md has been revised for clarity.
